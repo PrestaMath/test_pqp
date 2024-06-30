@@ -3,64 +3,74 @@
 namespace App\Livewire;
 
 use Livewire\Component;
+use Illuminate\Support\Facades\DB;
 
 class Moviedb extends Component
 {
-
-    public $moviedb = "Base de données movieDb";
+    public $erreur_curl='';
+    public $moviedb = "";
+    public $movies = [];
+    public $movie_detail=[];
 
     public function render()
     {
-        $this->update();
+       
         return view('livewire.moviedb');
     }
     
-    public function update(){
+    public function update_day_trending(){
+        $this->update_trending("day");
+    }
+    public function update_week_trending(){
+        $this->update_trending("week");
+    }
+
+    public function get_movie_detail($id){
+
+        $url= "https://api.themoviedb.org/3/movie/$id";    // ou "month"
+        $detail = json_decode($this->api_moviedb($url), true);;
+          
+        $this->movie_detail = $detail;
+        
+    }
+    public function update_trending($period){
+        
+        //$url = 'https://api.themoviedb.org/3/movie/11';
+        // trending
+        $url= "https://api.themoviedb.org/3/trending/movie/$period";    // ou "month"
+        $movies = json_decode($this->api_moviedb($url), true);;
+
+        $this->movies = $movies['results'];    
+        $this->moviedb= "Aujourd'hui";
+    }
+
+    public function api_moviedb($url){
         
         $apiKey = env('API_KEY_THEMOVIEDB');
         $this->moviedb= $apiKey;
 
-      
-// L'URL de l'API
-$url = 'https://api.themoviedb.org/3/movie/11';
-//$url = 'https://developers.themoviedb.org/3/trending/get-trending'; // ne fonctionne pas 301
+        $ch = curl_init();
 
-// trending
- $url= "https://api.themoviedb.org/3/trending/movie/day";
-// Le token d'accès
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+            'Authorization: Bearer ' . $apiKey, 
+            'accept: application/json'
+        ));
 
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
 
-// Initialiser une session cURL
-$ch = curl_init();
+        $response = curl_exec($ch);
 
-// Configurer les options de cURL
-curl_setopt($ch, CURLOPT_URL, $url);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_HTTPHEADER, array(
-    'Authorization: Bearer ' . $apiKey, 
-    'accept: application/json'
-    
-));
+        // Vérifier s'il y a une erreur
+        if (curl_errno($ch)) {
+          $this->erreur_curl=curl_error($ch);
+        } 
 
-// Désactiver la vérification SSL
-curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+        curl_close($ch);
 
-// Exécuter la requête
-$response = curl_exec($ch);
-
-// Vérifier s'il y a une erreur
-if (curl_errno($ch)) {
-    //echo 'Erreur cURL : ' . curl_error($ch);
-} else {
-    // Afficher la réponse
-    //echo $response;
-}
-
-// Fermer la session cURL
-curl_close($ch);
-
-$this->moviedb= $response;
-
+        //$arr = json_decode($response, true);
+        return $response;
     }
 }
