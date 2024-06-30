@@ -12,36 +12,67 @@ class Moviedb extends Component
     public $movies = [];
     public $movie_detail=[];
 
-    public function render()
-    {
-       
+    public function render(){
         return view('livewire.moviedb');
     }
     
     public function update_day_trending(){
         $this->update_trending("day");
     }
+
     public function update_week_trending(){
         $this->update_trending("week");
     }
 
     public function get_movie_detail($id){
 
-        $url= "https://api.themoviedb.org/3/movie/$id";    // ou "month"
-        $detail = json_decode($this->api_moviedb($url), true);;
+        $cache =  DB::select('SELECT data FROM movie_detail WHERE id_movie = ?', [$id]);
+
+        if ($cache && isset($cache[0]) ){
+            $json = $cache[0]->data;
+            $this->moviedb= "utilisation du cache";
+        } else {
+            $url= "https://api.themoviedb.org/3/movie/$id";
+            $json = $this->api_moviedb($url);
+            $this->cache_movie_detail($id, $json);
+            $this->moviedb= "appel api";
+        }
+
+        $detail = json_decode($json, true);
           
         $this->movie_detail = $detail;
-        
+
     }
+
+    public function cache_movie_detail($id, $json){
+        DB::statement('INSERT INTO movie_detail (id_movie,data) VALUES (?, ?)', [ $id, $json]);
+    }
+
     public function update_trending($period){
-        
-        //$url = 'https://api.themoviedb.org/3/movie/11';
-        // trending
-        $url= "https://api.themoviedb.org/3/trending/movie/$period";    // ou "month"
-        $movies = json_decode($this->api_moviedb($url), true);;
+
+        $cache =  DB::select('SELECT data FROM trending WHERE period = ? and date = ?', [$period , date('Ymd')]);
+
+        if ($cache && isset($cache[0]) ){
+            $json = $cache[0]->data;
+            $this->movie_db = "utilisation du cache";
+        } else {
+            $this->moviedb= "appel api";
+            $url= "https://api.themoviedb.org/3/trending/movie/$period";    // ou "month"
+            
+            $json = $this->api_moviedb($url);
+
+            $this->cache_trending($period, $json);
+        }
+        $movies = json_decode($json, true);
 
         $this->movies = $movies['results'];    
-        $this->moviedb= "Aujourd'hui";
+     
+    }
+
+    public function cache_trending($period, $json){
+
+        DB::statement('INSERT INTO trending (date, period,data) VALUES (?, ?, ?)', 
+        [date('Ymd'), $period, $json]);
     }
 
     public function api_moviedb($url){
@@ -63,14 +94,13 @@ class Moviedb extends Component
 
         $response = curl_exec($ch);
 
-        // Vérifier s'il y a une erreur
+        
         if (curl_errno($ch)) {
           $this->erreur_curl=curl_error($ch);
         } 
 
         curl_close($ch);
 
-        //$arr = json_decode($response, true);
         return $response;
     }
 }
