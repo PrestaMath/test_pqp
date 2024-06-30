@@ -41,15 +41,27 @@
                             
 
                                 <img src="https://image.tmdb.org/t/p/w300{{ $movie['backdrop_path'] }}">    
-                                <button wire:click="get_movie_detail({{ $movie['id'] }})">Détail du film</button>
+                                <x-button type="button" wire:click="get_movie_detail({{ $movie['id'] }})">
+                                    Détail du film
+                                </x-button>
 
+                                
                         
                         </p>
                         @if (!empty($movie_detail)  && $movie_detail['id'] == $movie['id'] )
                             <p class="mt-6 text-white-500 leading-relaxed bg-indigo-500">
-                                <a href="{{$movie_detail['homepage']}}" target="_blank">Site du film
 
-                                </a>
+                                                    
+                                @foreach ($movie_detail as $k=>$detail)
+                                   @if (! is_array($detail))
+                                        
+                                        @if  ($k == 'homepage') 
+                                            <a href="{{$movie_detail['homepage']}}" target="_blank">Site du film {{$movie_detail['homepage']}}</a>
+                                        @else
+                                            {{$k}} : {{$detail}}<br>
+                                        @endif    
+                                    @endif 
+                                @endforeach            
                             </p>
                         @endif
                     @endforeach
