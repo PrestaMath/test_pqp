@@ -1,6 +1,7 @@
 <?php
-
 use Illuminate\Support\Facades\Route;
+use App\Livewire\Counter; 
+use App\Livewire\Moviedb; 
 
 Route::get('/', function () {
     return view('welcome');
@@ -15,3 +16,5 @@ Route::middleware([
         return view('dashboard');
     })->name('dashboard');
 });
+
+Route::get('/moviedb', Moviedb::class)->name('moviedb');
